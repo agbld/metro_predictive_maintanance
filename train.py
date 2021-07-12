@@ -8,19 +8,17 @@ from pandas import DataFrame
 device_keys_table = get_dataset.get_device_keys_table(use_archive=True)
 event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
 
-time_steps = 2
+time_steps = 4
 time_window_x = 7
 time_window_y = 7
 X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29), 
-                                       date(2021, 2, 1), #date(2021, 4, 19), 
+                                       date(2021, 4, 19), 
                                        device_keys_table, 
                                        event_keys_table,
                                        time_window_x=time_window_x, 
                                        time_steps=time_steps, 
                                        time_window_y=time_window_y,
                                        use_archive=True)
-
-X, Y = DataFrame(X), DataFrame(Y)
 
 # X = np.asarray(X).astype('float32')
 # X = np.array(X.reshape((len(X), time_steps, 352, 1)))
