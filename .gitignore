@@ -1,6 +1,9 @@
 # custom
 collected_data/
 trained_model/
+model_backup/
+bench_model_backup
+refer/mssql_info.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
