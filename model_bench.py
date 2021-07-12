@@ -1,8 +1,10 @@
+#%%
+from pandas.core.frame import DataFrame
 from tensorflow.keras.models import clone_model
 
-def bench_model(model, epochs:int, X_train, Y_train, X_test, Y_test, model_name='trained_model'):
+def bench_model(model, epochs:int, X_train, Y_train, model_name='trained_model'):
   history = model.fit(X_train, Y_train, epochs=epochs, validation_split=0.2, shuffle=True)
-  model.evaluate(X_test, Y_test)
+  # model.evaluate(X_test, Y_test)
   model.save('bench_model_backup/' + model_name)
   
   loss_list = history.history['loss']
@@ -47,9 +49,19 @@ def plot_result(bench_result, model_name):
 
 from tensorflow.keras.models import load_model
 import csv
-def test_model(model_name, X_test, Y_test):
+import numpy as np
+def test_model(model_name, X_test:DataFrame, Y_test:DataFrame, input_shape):
   model = load_model(model_name)
-  sample = X_test
+  
+  sample = DataFrame.copy(X_test)
+  sample.pop('device_key')
+  sample.pop('date')
+
+  sample = np.asarray(sample).astype('float32')
+  sample = np.array(sample.reshape(input_shape))
+  Y_test = np.asarray(Y_test).astype('float32')
+  Y_test = np.where(Y_test > 0, 1, 0)
+  
   predictions = model.predict(sample)
   correctness = 0
   pred_0 = 0
@@ -73,9 +85,8 @@ def test_model(model_name, X_test, Y_test):
       if pred == 1 and pred == y: correctness_pred_1 += 1
       row = [pred_raw, pred, y, diff]
       writer.writerow(row)
-      print(str(i) + 'th' + '\tpred_raw:' + str(pred_raw) + '\tpred:' + str(pred) + '\tY:' + str(y) + '\tdiff:' + str(diff))
+      print(str(i) + 'th' + '\t' + str(X_test.at[i, 'device_key']) + '\t' + str(X_test.at[i, 'date']) + '\tpred_raw:' + str(pred_raw) + '\tpred:' + str(pred) + '\tY:' + str(y) + '\tdiff:' + str(diff))
   correctness = round(correctness / (pred_0 + pred_1), 4) * 100
   correctness_pred_0 = round(correctness_pred_0 / pred_0, 4) * 100
   correctness_pred_1 = round(correctness_pred_1 / pred_1, 4) * 100
   print('correctness: ' + str(correctness) + '%\tcorrectness(pred:0): ' + str(correctness_pred_0) + '%\tcorrectness(pred:1): ' + str(correctness_pred_1) + '%')
-      

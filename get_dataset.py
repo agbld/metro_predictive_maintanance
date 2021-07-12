@@ -329,6 +329,7 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
   save_path = collected_data_folder + 'XY.csv'
   if path.exists(save_path) and use_archive:
     print('found csv archive, collecting from csv ...')
+    time_consumn = datetime.datetime.now()
     with open(save_path, newline='') as csvfile:
       rows = csv.reader(csvfile)
       header = next(rows)
@@ -347,7 +348,8 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
         X.append(x)
         y = [int(row[-1])]
         Y.append(y)
-    print('X, Y loaded from csv archive.')
+    time_consumn = datetime.datetime.now() - time_consumn
+    print('X, Y loaded from csv archive in ' + str(time_consumn.seconds) + ' seconds.')
     return DataFrame(X), DataFrame(Y)
   
   print('csv archive not found, collecting from server ...')
