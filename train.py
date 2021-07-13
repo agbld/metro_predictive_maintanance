@@ -11,12 +11,12 @@ from sklearn.model_selection import train_test_split
 device_keys_table = get_dataset.get_device_keys_table(use_archive=True)
 event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
 
-time_steps = 4
-time_window_x = 7
+time_steps = 7
+time_window_x = 2
 time_window_y = 7
 X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29), 
                                        date(2021, 4, 19), 
-                                       device_keys_table[:10], 
+                                       device_keys_table[:50], 
                                        event_keys_table,
                                        time_window_x=time_window_x, 
                                        time_steps=time_steps, 
@@ -71,7 +71,7 @@ def create_conv_structure():
   # model.add(Conv2D(filters=256, kernel_size=(1, 352), padding='valid', activation='relu'))
   model.add(Flatten())
   model.add(Dense(300, activation='relu'))  #need to optimize for training efficiancy 
-  model.add(Dropout(0.2))                   #need to optimize for no over fit
+  # model.add(Dropout(0.2))                 #need to optimize for no over fit
   model.add(Dense(1, activation='sigmoid')) #try softmax
   opt = Adam(lr=1e-4, decay=1e-4/2)
   model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
@@ -83,7 +83,7 @@ def create_conv_structure():
 model = create_conv_structure()
 
 #%%
-history = model.fit(X_train, Y_train, epochs=10, validation_split=0.2, shuffle=True)
+history = model.fit(X_train, Y_train, epochs=num_of_epochs, validation_split=0.2, shuffle=True)
 print('saving model ...')
 model.save('bench_model_backup/' + model_name)
 print('model saved')
