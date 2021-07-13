@@ -11,8 +11,8 @@ from sklearn.model_selection import train_test_split
 device_keys_table = get_dataset.get_device_keys_table(use_archive=True)
 event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
 
-time_steps = 7
 time_window_x = 2
+time_steps = 7
 time_window_y = 7
 X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29), 
                                        date(2021, 4, 19), 
@@ -51,10 +51,11 @@ num_of_epochs = 300
 model_name = 'model_'
 
 def create_dens_structure():
-  model_name = 'model_Den4x_Den4x_1'
+  model_name = 'model_Den2x_Den2x_Drp20_1'
   model = Sequential(name=model_name)
-  model.add(Dense(num_of_features * 4, activation='relu', input_shape=(num_of_features,)))
-  model.add(Dense(num_of_features * 4, activation='relu', input_shape=(num_of_features,)))
+  model.add(Dense(num_of_features * 2, activation='relu', input_shape=(num_of_features,)))
+  model.add(Dense(num_of_features * 2, activation='relu'))
+  model.add(Dropout(0.2))
   model.add(Dense(1, activation='sigmoid'))
   opt = Adam(lr=1e-4, decay=1e-4)
   model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
@@ -80,7 +81,7 @@ def create_conv_structure():
   print(model.summary())
   return model
 
-model = create_conv_structure()
+model = create_dens_structure()
 
 #%%
 history = model.fit(X_train, Y_train, epochs=num_of_epochs, validation_split=0.2, shuffle=True)
