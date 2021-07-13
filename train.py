@@ -8,7 +8,7 @@ import numpy as np
 from pandas import DataFrame
 from sklearn.model_selection import train_test_split
 
-device_keys_table = get_dataset.get_device_keys_table(use_archive=True)
+device_keys_table = get_dataset.get_device_keys_table(use_archive=True, svce_loc_id_list=['086',])
 event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
 
 time_window_x = 7
@@ -16,7 +16,7 @@ time_steps = 4
 time_window_y = 7
 X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29), 
                                        date(2021, 4, 19), 
-                                       device_keys_table[:50], 
+                                       device_keys_table, 
                                        event_keys_table,
                                        time_window_x=time_window_x, 
                                        time_steps=time_steps, 
@@ -46,9 +46,22 @@ from model_bench import test_model, plot_result
 num_of_features = len(X[0])
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=True)
 
-num_of_epochs = 300
+num_of_epochs = 1000
 
 model_name = 'model_'
+
+def create_simple_dens_structure():
+  model_name = 'model_1'
+  model = Sequential(name=model_name)
+  model.add(Dense(200, activation='relu', input_shape=(num_of_features,)))
+  # model.add(Dropout(0.5))
+  model.add(Dense(1, activation='sigmoid'))
+  opt = Adam(lr=1e-5, decay=1e-4)
+  model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
+  # mean_absolute_error
+  # binary_crossentropy
+  print(model.summary())
+  return model
 
 def create_dens_structure():
   model_name = 'model_Den_Den_Drp_1'
@@ -57,7 +70,7 @@ def create_dens_structure():
   model.add(Dense(num_of_features * 4, activation='relu'))
   model.add(Dropout(0.2))
   model.add(Dense(1, activation='sigmoid'))
-  opt = Adam(lr=1e-4, decay=1e-4)
+  opt = Adam(lr=1e-4, decay=1e-4/2)
   model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
   # mean_absolute_error
   # binary_crossentropy
@@ -88,7 +101,7 @@ def create_pconv_structure():
   time_conv = Reshape((time_steps, 352, 1))(time_conv_input)
   time_conv = Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid')(time_conv)
   time_conv = Flatten()(time_conv)
-  time_conv = Dense(300, activation='relu')(time_conv)
+  time_conv = Dense(250, activation='relu')(time_conv)
 
   relation_conv_input = Input(shape=(len(X[0]), ))
   relation_conv = Reshape((time_steps, 352, 1))(relation_conv_input)
@@ -102,7 +115,7 @@ def create_pconv_structure():
   
   model_pconv = Model([time_conv_input, relation_conv_input], model_pconv)
 
-  opt = Adam(lr=1e-4, decay=1e-4/2)
+  opt = Adam(lr=1e-4, decay=1e-3)
   model_pconv.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
   # mean_absolute_error
   # binary_crossentropy
