@@ -23,19 +23,18 @@ X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29),
                                        time_window_y=time_window_y,
                                        use_archive=True)
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=False)
 
-X_train.pop('device_key')
-X_train.pop('date')
+X.pop('device_key')
+X.pop('date')
 
-X_train = np.asarray(X_train).astype('float32')
+X = np.asarray(X).astype('float32')
 # X_train = np.array(X_train.reshape((len(X_train), time_steps, 352, 1)))
 
-Y_train = np.asarray(Y_train).astype('float32')
-Y_train = np.where(Y_train > 0, 1, 0)
+Y = np.asarray(Y).astype('float32')
+Y = np.where(Y > 0, 1, 0)
 
-print(Y_train.shape)
-print(Y_train.shape)
+print(X.shape)
+print(Y.shape)
 
 
 # %%
@@ -44,7 +43,8 @@ from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, Reshape, In
 from tensorflow.keras.optimizers import Adam
 from model_bench import test_model, plot_result
 
-num_of_features = len(X_train[0])
+num_of_features = len(X[0])
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=True)
 
 num_of_epochs = 300
 
@@ -53,8 +53,8 @@ model_name = 'model_'
 def create_dens_structure():
   model_name = 'model_Den_Den_Drp_1'
   model = Sequential(name=model_name)
-  model.add(Dense(num_of_features * 2, activation='relu', input_shape=(num_of_features,)))
-  model.add(Dense(num_of_features * 2, activation='relu'))
+  model.add(Dense(num_of_features * 4, activation='relu', input_shape=(num_of_features,)))
+  model.add(Dense(num_of_features * 4, activation='relu'))
   model.add(Dropout(0.2))
   model.add(Dense(1, activation='sigmoid'))
   opt = Adam(lr=1e-4, decay=1e-4)
@@ -84,21 +84,22 @@ def create_conv_structure():
 def create_pconv_structure():
   model_name = 'model_parallel'
   
-  time_conv_input = Input(shape=(len(X_train[0]), ))
+  time_conv_input = Input(shape=(len(X[0]), ))
   time_conv = Reshape((time_steps, 352, 1))(time_conv_input)
   time_conv = Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid')(time_conv)
   time_conv = Flatten()(time_conv)
   time_conv = Dense(300, activation='relu')(time_conv)
 
-  relation_conv_input = Input(shape=(len(X_train[0]), ))
+  relation_conv_input = Input(shape=(len(X[0]), ))
   relation_conv = Reshape((time_steps, 352, 1))(relation_conv_input)
-  relation_conv = Conv2D(filters=64, kernel_size=(1, 352), activation='relu', padding='valid')(relation_conv)
+  relation_conv = Conv2D(filters=128, kernel_size=(1, 352), activation='relu', padding='valid')(relation_conv)
   relation_conv = Flatten()(relation_conv)
-  relation_conv = Dense(300, activation='relu')(relation_conv)
+  relation_conv = Dense(256, activation='relu')(relation_conv)
 
   concatenate_layer = concatenate([time_conv, relation_conv])
-  # model_pconv = Dense(300, activation='relu')(concatenate_layer)
-  model_pconv = Dense(1, activation='sigmoid')(concatenate_layer)
+  # model_pconv = Dense(400, activation='relu')(concatenate_layer)
+  model_pconv = Dropout(0.3)(concatenate_layer)
+  model_pconv = Dense(1, activation='sigmoid')(model_pconv)
   
   model_pconv = Model([time_conv_input, relation_conv_input], model_pconv)
 
@@ -113,6 +114,7 @@ model = create_pconv_structure()
 
 #%%
 history = model.fit([X_train, X_train], Y_train, epochs=num_of_epochs, validation_split=0.2, shuffle=True)
+model.evaluate([X_test, X_test], Y_test)
 print('saving model ...')
 model.save('bench_model_backup/' + model_name)
 print('model saved')
@@ -122,14 +124,14 @@ val_loss_list = history.history['val_loss']
 accuracy_list = history.history['accuracy']
 val_accuracy_list = history.history['val_accuracy']
 
-plot_result([loss_list, val_loss_list, accuracy_list, val_accuracy_list], model_name)
+# plot_result([loss_list, val_loss_list, accuracy_list, val_accuracy_list], model_name)
 
-# import csv
-# with open('for_remote_training.csv', 'w', newline='') as csvfile:
-#       writer = csv.writer(csvfile)
-#       writer.writerow(['loss', 'accuracy', 'val_loss', 'val_accuracy'])
-#       for i in range(len(loss_list)):
-#             writer.writerow([loss_list[i], val_loss_list[i], accuracy_list[i], val_accuracy_list[i]])
+import csv
+with open('for_remote_training.csv', 'w', newline='') as csvfile:
+      writer = csv.writer(csvfile)
+      writer.writerow(['loss', 'accuracy', 'val_loss', 'val_accuracy'])
+      for i in range(len(loss_list)):
+            writer.writerow([loss_list[i], val_loss_list[i], accuracy_list[i], val_accuracy_list[i]])
 
 #%%
 # test_model('model_backup/' + model_name, X_test, Y_test, (len(X_test), time_steps, 352, 1))
