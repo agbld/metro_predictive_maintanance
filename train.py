@@ -16,7 +16,7 @@ time_steps = 7
 time_window_y = 7
 X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29), 
                                        date(2021, 4, 19), 
-                                       device_keys_table[:50], 
+                                       device_keys_table[:1], 
                                        event_keys_table,
                                        time_window_x=time_window_x, 
                                        time_steps=time_steps, 
@@ -40,7 +40,7 @@ print(Y_train.shape)
 
 # %%
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, Reshape
+from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, Reshape, Input, Concatenate
 from tensorflow.keras.optimizers import Adam
 from model_bench import test_model, plot_result
 
@@ -51,7 +51,7 @@ num_of_epochs = 300
 model_name = 'model_'
 
 def create_dens_structure():
-  model_name = 'model_Den2x_Den2x_Drp20_1'
+  model_name = 'model_Den_Den_Drp_1'
   model = Sequential(name=model_name)
   model.add(Dense(num_of_features * 2, activation='relu', input_shape=(num_of_features,)))
   model.add(Dense(num_of_features * 2, activation='relu'))
@@ -65,7 +65,7 @@ def create_dens_structure():
   return model
 
 def create_conv_structure():
-  model_name = 'model_Con5_Den300_Drp20_1'
+  model_name = 'model_Con_Den3_Drp_1'
   model = Sequential(name=model_name)
   model.add(Reshape((time_steps, 352, 1), input_shape=(len(X_train[0]), )))
   model.add(Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid'))
@@ -80,6 +80,30 @@ def create_conv_structure():
   # binary_crossentropy
   print(model.summary())
   return model
+
+def create_pconv_structure():
+  model_name = 'model_parallel'
+  
+  time_conv = Input(shape=(len(X_train[0]), ))
+  time_conv = Reshape((time_steps, 352, 1))(time_conv)
+  time_conv = Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid')(time_conv)
+  time_conv = Flatten()(time_conv)
+
+  relation_conv = Input(shape=(len(X_train[0]), ))
+  relation_conv = Reshape((time_steps, 352, 1))(relation_conv)
+  relation_conv = Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid')(relation_conv)
+  relation_conv = Flatten()(relation_conv)
+
+  model_pconv = Concatenate([time_conv, relation_conv])
+  model_pconv = Dense(500, activation='relu')(model_pconv)
+  model_pconv = Dense(1, activation='sigmoid')(model_pconv)
+
+  opt = Adam(lr=1e-4, decay=1e-4/2)
+  model_pconv.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
+  # mean_absolute_error
+  # binary_crossentropy
+  print(model_pconv.summary())
+  return model_pconv
 
 model = create_dens_structure()
 
