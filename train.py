@@ -94,11 +94,10 @@ def create_pconv_structure():
   relation_conv = Reshape((time_steps, 352, 1))(relation_conv_input)
   relation_conv = Conv2D(filters=128, kernel_size=(1, 352), activation='relu', padding='valid')(relation_conv)
   relation_conv = Flatten()(relation_conv)
-  relation_conv = Dense(256, activation='relu')(relation_conv)
+  relation_conv = Dense(128, activation='relu')(relation_conv)
 
   concatenate_layer = concatenate([time_conv, relation_conv])
-  # model_pconv = Dense(400, activation='relu')(concatenate_layer)
-  model_pconv = Dropout(0.3)(concatenate_layer)
+  model_pconv = Dropout(0.4)(concatenate_layer)
   model_pconv = Dense(1, activation='sigmoid')(model_pconv)
   
   model_pconv = Model([time_conv_input, relation_conv_input], model_pconv)
