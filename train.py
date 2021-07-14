@@ -22,9 +22,12 @@ X, Y = get_dataset.get_XY_between_date(date(2021, 1, 15),
                                        time_steps=time_steps, 
                                        time_window_y=time_window_y,
                                        use_archive=True)
+print(X.shape)
+print(Y.shape)
 
-print(X.head(20))
-print(Y.head(20))
+X, Y = get_dataset.data_argument(X, Y, multiply_y=2)
+print(X.shape)
+print(Y.shape)
 
 X.pop('device_key')
 X.pop('date')
@@ -34,9 +37,6 @@ X = np.asarray(X).astype('float32')
 
 Y = np.asarray(Y).astype('float32')
 Y = np.where(Y > 0, 1, 0)
-
-print(X.shape)
-print(Y.shape)
 
 # %%
 from tensorflow.keras.models import Sequential, load_model, Model
@@ -123,7 +123,7 @@ def create_pconv_structure():
   print(model_pconv.summary())
   return model_pconv
 
-model = create_simple_dens_structure()
+model = create_dens_structure()
 
 #%%
 history = model.fit(X_train, Y_train, epochs=num_of_epochs, validation_split=0.2, shuffle=True)

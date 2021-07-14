@@ -64,20 +64,20 @@ def get_device_keys_table(host=mssql_host, user=mssql_user, passward=mssql_passw
       key_table.append(svce_loc_id + row['dev_name'])
   
   # append table with view
-  cmd_from_view = "SELECT svce_loc_id, dev_name FROM ATIM工單_view where dev_name not like '%VATIM%' group by svce_loc_id, dev_name"
-  cursor.execute(cmd_from_view)
-  for row in cursor:
-    svce_loc_id = str(row['svce_loc_id']).zfill(3)
-    if len(svce_loc_id_list) == 0:
-      key_table.append(svce_loc_id + row['dev_name'])
-    elif svce_loc_id in svce_loc_id_list:
-      key_table.append(svce_loc_id + row['dev_name'])
+  # cmd_from_view = "SELECT svce_loc_id, dev_name FROM ATIM工單_view where dev_name not like '%VATIM%' group by svce_loc_id, dev_name"
+  # cursor.execute(cmd_from_view)
+  # for row in cursor:
+  #   svce_loc_id = str(row['svce_loc_id']).zfill(3)
+  #   if len(svce_loc_id_list) == 0:
+  #     key_table.append(svce_loc_id + row['dev_name'])
+  #   elif svce_loc_id in svce_loc_id_list:
+  #     key_table.append(svce_loc_id + row['dev_name'])
   
   cursor.close()
   conn.close()
   
   # distinct table
-  key_table = list(set(key_table))
+  # key_table = list(set(key_table))
   print('device key table loaded from server.')
   
   with open(save_path, 'w', newline='') as csvfile:
@@ -369,7 +369,7 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
         else : continue
         X.append(x)
         y = {}
-        y[header[-1]] = row[-1]
+        y[header[-1]] = int(row[-1])
         Y.append(y)
     time_consumn = datetime.datetime.now() - time_consumn
     print('X, Y loaded from csv archive in ' + str(time_consumn.seconds) + ' seconds.')
@@ -428,5 +428,44 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
       writer.writerow(row)
   print('X, Y archived.')
   return DataFrame(X), DataFrame(Y)
+
+# %%
+import numpy as np
+def data_argument(X:DataFrame, Y:DataFrame, multiply_y=1):
+  if multiply_y > 1:
+    print('argumenting records that y > 0 ...')
+    # counts_y1 = 0
+    
+    argumented_XY = DataFrame.copy(X)
+    argumented_XY['target'] = Y['target']
+    
+    argumented_XY = argumented_XY[argumented_XY['target'] > 0]
+    
+    
+    argumented_Y = DataFrame(argumented_XY.pop('target'))
+    argumented_X = argumented_XY
+    for i in range(multiply_y - 1):
+      X = X.append(argumented_X, ignore_index=True)
+      Y = Y.append(argumented_Y, ignore_index=True)
+    print('data argumented.')#, ' + str(counts_y1 * multiply_y) + ' records that y > 0 .')
+    return X, Y
+  
+#%%
+device_keys_table = get_device_keys_table(use_archive=True)
+event_keys_table = get_event_keys_table(use_archive=True)
+
+time_window_x = 2
+time_steps = 7
+time_window_y = 7
+X, Y = get_XY_between_date(date(2021, 1, 15), 
+                                       date(2021, 4, 19), 
+                                       device_keys_table[:50], 
+                                       event_keys_table,
+                                       time_window_x=time_window_x, 
+                                       time_steps=time_steps, 
+                                       time_window_y=time_window_y,
+                                       use_archive=True)
+print(X.shape)
+print(Y.shape)
 
 # %%
