@@ -50,7 +50,7 @@ def plot_result(bench_result, model_name):
 from tensorflow.keras.models import load_model
 import csv
 import numpy as np
-def test_model(model_name, X_test:DataFrame, Y_test:DataFrame, input_shape):
+def test_model(model_name, X_test:DataFrame, Y_test:DataFrame):
   model = load_model(model_name)
   
   sample = DataFrame.copy(X_test)
@@ -58,7 +58,6 @@ def test_model(model_name, X_test:DataFrame, Y_test:DataFrame, input_shape):
   sample.pop('date')
 
   sample = np.asarray(sample).astype('float32')
-  sample = np.array(sample.reshape(input_shape))
   Y_test = np.asarray(Y_test).astype('float32')
   Y_test = np.where(Y_test > 0, 1, 0)
   
@@ -72,7 +71,8 @@ def test_model(model_name, X_test:DataFrame, Y_test:DataFrame, input_shape):
   with open('collected_data/test_result.csv', 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(['pred_raw', 'pred', 'y', 'diff'])
-    for i in range(0, len(sample)):
+    i = 0
+    for index, row in X_test.iterrows():
       pred_raw = round(predictions[i][0], 2)
       pred = 0
       if pred_raw > 0.5 : pred = 1
@@ -85,7 +85,8 @@ def test_model(model_name, X_test:DataFrame, Y_test:DataFrame, input_shape):
       if pred == 1 and pred == y: correctness_pred_1 += 1
       row = [pred_raw, pred, y, diff]
       writer.writerow(row)
-      print(str(i) + 'th' + '\t' + str(X_test.at[i, 'device_key']) + '\t' + str(X_test.at[i, 'date']) + '\tpred_raw:' + str(pred_raw) + '\tpred:' + str(pred) + '\tY:' + str(y) + '\tdiff:' + str(diff))
+      print(str(i) + 'th' + '\t' + str(row['device_key']) + '\t' + str(row[i, 'date']) + '\tpred_raw:' + str(pred_raw) + '\tpred:' + str(pred) + '\tY:' + str(y) + '\tdiff:' + str(diff))
+      i += 1
   correctness = round(correctness / (pred_0 + pred_1), 4) * 100
   correctness_pred_0 = round(correctness_pred_0 / pred_0, 4) * 100
   correctness_pred_1 = round(correctness_pred_1 / pred_1, 4) * 100

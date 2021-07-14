@@ -449,23 +449,5 @@ def data_argument(X:DataFrame, Y:DataFrame, multiply_y=1):
       Y = Y.append(argumented_Y, ignore_index=True)
     print('data argumented.')#, ' + str(counts_y1 * multiply_y) + ' records that y > 0 .')
     return X, Y
-  
-#%%
-device_keys_table = get_device_keys_table(use_archive=True)
-event_keys_table = get_event_keys_table(use_archive=True)
-
-time_window_x = 2
-time_steps = 7
-time_window_y = 7
-X, Y = get_XY_between_date(date(2021, 1, 15), 
-                                       date(2021, 4, 19), 
-                                       device_keys_table[:50], 
-                                       event_keys_table,
-                                       time_window_x=time_window_x, 
-                                       time_steps=time_steps, 
-                                       time_window_y=time_window_y,
-                                       use_archive=True)
-print(X.shape)
-print(Y.shape)
 
 # %%
