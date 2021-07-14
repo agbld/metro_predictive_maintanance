@@ -8,21 +8,23 @@ import numpy as np
 from pandas import DataFrame
 from sklearn.model_selection import train_test_split
 
-device_keys_table = get_dataset.get_device_keys_table(use_archive=True, svce_loc_id_list=['086',])
+device_keys_table = get_dataset.get_device_keys_table(use_archive=True)
 event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
 
-time_window_x = 7
-time_steps = 4
+time_window_x = 2
+time_steps = 7
 time_window_y = 7
-X, Y = get_dataset.get_XY_between_date(date(2021, 1, 29), 
+X, Y = get_dataset.get_XY_between_date(date(2021, 1, 15), 
                                        date(2021, 4, 19), 
-                                       device_keys_table, 
+                                       device_keys_table[:50], 
                                        event_keys_table,
                                        time_window_x=time_window_x, 
                                        time_steps=time_steps, 
                                        time_window_y=time_window_y,
                                        use_archive=True)
 
+print(X.head(20))
+print(Y.head(20))
 
 X.pop('device_key')
 X.pop('date')
@@ -35,7 +37,6 @@ Y = np.where(Y > 0, 1, 0)
 
 print(X.shape)
 print(Y.shape)
-
 
 # %%
 from tensorflow.keras.models import Sequential, load_model, Model
@@ -53,9 +54,9 @@ model_name = 'model_'
 def create_simple_dens_structure():
   model_name = 'model_1'
   model = Sequential(name=model_name)
-  model.add(Dense(200, activation='relu', input_shape=(num_of_features,)))
+  # model.add(Dense(200, activation='relu', input_shape=(num_of_features,)))
   # model.add(Dropout(0.5))
-  model.add(Dense(1, activation='sigmoid'))
+  model.add(Dense(1, activation='sigmoid', input_shape=(num_of_features,)))
   opt = Adam(lr=1e-5, decay=1e-4)
   model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
   # mean_absolute_error
@@ -80,14 +81,14 @@ def create_dens_structure():
 def create_conv_structure():
   model_name = 'model_Con_Den3_Drp_1'
   model = Sequential(name=model_name)
-  model.add(Reshape((time_steps, 352, 1), input_shape=(len(X_train[0]), )))
+  model.add(Reshape((time_steps, 353, 1), input_shape=(len(X_train[0]), )))
   model.add(Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid'))
   # model.add(Conv2D(filters=256, kernel_size=(1, 352), padding='valid', activation='relu'))
   model.add(Flatten())
   model.add(Dense(300, activation='relu'))  #need to optimize for training efficiancy 
-  # model.add(Dropout(0.2))                 #need to optimize for no over fit
+  model.add(Dropout(0.4))                 #need to optimize for no over fit
   model.add(Dense(1, activation='sigmoid')) #try softmax
-  opt = Adam(lr=1e-4, decay=1e-4/2)
+  opt = Adam(lr=1e-5, decay=1e-4/2)
   model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
   # mean_absolute_error
   # binary_crossentropy
@@ -98,14 +99,14 @@ def create_pconv_structure():
   model_name = 'model_parallel'
   
   time_conv_input = Input(shape=(len(X[0]), ))
-  time_conv = Reshape((time_steps, 352, 1))(time_conv_input)
+  time_conv = Reshape((time_steps, 353, 1))(time_conv_input)
   time_conv = Conv2D(filters=5, kernel_size=(time_steps, 1), activation='relu', padding='valid')(time_conv)
   time_conv = Flatten()(time_conv)
   time_conv = Dense(250, activation='relu')(time_conv)
 
   relation_conv_input = Input(shape=(len(X[0]), ))
-  relation_conv = Reshape((time_steps, 352, 1))(relation_conv_input)
-  relation_conv = Conv2D(filters=128, kernel_size=(1, 352), activation='relu', padding='valid')(relation_conv)
+  relation_conv = Reshape((time_steps, 353, 1))(relation_conv_input)
+  relation_conv = Conv2D(filters=128, kernel_size=(1, 353), activation='relu', padding='valid')(relation_conv)
   relation_conv = Flatten()(relation_conv)
   relation_conv = Dense(128, activation='relu')(relation_conv)
 
@@ -122,11 +123,11 @@ def create_pconv_structure():
   print(model_pconv.summary())
   return model_pconv
 
-model = create_pconv_structure()
+model = create_simple_dens_structure()
 
 #%%
-history = model.fit([X_train, X_train], Y_train, epochs=num_of_epochs, validation_split=0.2, shuffle=True)
-model.evaluate([X_test, X_test], Y_test)
+history = model.fit(X_train, Y_train, epochs=num_of_epochs, validation_split=0.2, shuffle=True)
+model.evaluate(X_test, Y_test)
 print('saving model ...')
 model.save('bench_model_backup/' + model_name)
 print('model saved')

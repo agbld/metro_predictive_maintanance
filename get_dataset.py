@@ -223,6 +223,9 @@ def get_X_of_the_date(date: date, device_keys_table, event_keys_table, time_wind
       for i in range(1, time_steps+1):
         x[event_key + "_" + str(i)] = 0
         value_counts += 1
+    for i in range(1, time_steps+1):
+      x['malfunc_' + str(i)] = 0
+      value_counts += 1
     X[device_key] = x
   
   error_counts = 0
@@ -249,14 +252,33 @@ def get_X_of_the_date(date: date, device_keys_table, event_keys_table, time_wind
   cursor.execute(cmd)
   
   for row in cursor:
-    # query_counts += 1
+    query_counts += 1
     device_key = str(row['svce_loc_id']) + row['dev_name']
     event_key = row['event_key'] + "_" + row['week']
     if device_key in X:
       X[device_key][event_key] = int(row['counts'])
-    # else: error_counts += 1
+    else: error_counts += 1
+    
   
-  # if error_counts >= 0 : print(str(error_counts) + ' errors among ' + str(query_counts) + ' query rows, ' + str(value_counts) + ' values.')
+  cmd = ""
+  for i in range(1, time_steps + 1):
+    cmd += """
+    select concat(svce_loc_id, dev_name) as device_key, \'{0}\' as week, count(dev_name) as counts
+    from ATIM工單_view
+    where dev_name not like \'%VATIM%\' and 報修日期 between \'{1}\' and \'{2}\'
+    group by concat(svce_loc_id, dev_name)
+    """.format(i, str(date - timedelta(days=i * time_window)), str(date + timedelta(days=1) - timedelta(days=(i - 1) * time_window)))
+    if i < time_steps: cmd += " union "
+
+  cursor.execute(cmd)  
+  for row in cursor:
+    query_counts += 1
+    if row['device_key'] in X:
+      X[row['device_key']]['malfunc_' + str(row['week'])] = int(row['counts'])
+    else: error_counts += 1
+  
+  
+  if error_counts >= 0 : print(str(error_counts) + ' errors among ' + str(query_counts) + ' query rows, ' + str(value_counts) + ' values.')
   cursor.close()
   conn.close()
   return X.values()
@@ -337,7 +359,7 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
         x = {}
         if not row[0] in device_keys_table: continue
         if from_date <= datetime.datetime.strptime(row[1], "%Y-%m-%d").date() < to_date:
-          for i in range(len(header)):
+          for i in range(len(header) - 1):
             if i < 2:
               x[header[i]] = row[i]
             else :
@@ -346,7 +368,8 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
           # x.append(row[1])
         else : continue
         X.append(x)
-        y = [int(row[-1])]
+        y = {}
+        y[header[-1]] = row[-1]
         Y.append(y)
     time_consumn = datetime.datetime.now() - time_consumn
     print('X, Y loaded from csv archive in ' + str(time_consumn.seconds) + ' seconds.')
@@ -384,9 +407,16 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
     cursor_date = cursor_date + datetime.timedelta(days=1)
   print('X, Y loaded from server.')
   
+  print('saving X, Y archive ...')
   with open(save_path, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile)
-    writer.writerow(list(X[0].keys()))
+    x = list(X[0].keys())
+    y = list(Y[0].keys())
+    row = []
+    row.extend(x)
+    row.extend(y)
+    writer.writerow(row)
+    # writer.writerow(list(X[0].keys()).extend(list(Y[0].keys())))
     for i in range(len(X)):
       # row = list(X[i].values()).extend(list(Y[i].values()))
       # print(row)
