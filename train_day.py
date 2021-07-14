@@ -10,14 +10,15 @@ from sklearn.model_selection import train_test_split
 
 
 # C307: '65', '66', '67', '68', '69', '70', '71', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '121', '122', '123', '124', '125', '126', '127', '128', '129', '130', '131', '132', '133', '134', '174', '175', '176', '177', '178', '179', '180'
+# 松信: ''
 device_keys_table = get_dataset.get_device_keys_table(use_archive=False, svce_loc_id_list=['65', '66', '67', '68', '69', '70', '71', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '121', '122', '123', '124', '125', '126', '127', '128', '129', '130', '131', '132', '133', '134', '174', '175', '176', '177', '178', '179', '180'])
 event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
 
-time_window_x = 2
-time_steps = 7
-time_window_y = 7
-X, Y = get_dataset.get_XY_between_date(date(2021, 1, 15), 
-                                       date(2021, 4, 19), 
+time_window_x = 1
+time_steps = 3
+time_window_y = 3
+X, Y = get_dataset.get_XY_between_date(date(2021, 1, 4), 
+                                       date(2021, 4, 23), 
                                        device_keys_table, 
                                        event_keys_table,
                                        time_window_x=time_window_x, 
@@ -59,7 +60,7 @@ from model_bench import test_model, plot_result
 
 num_of_features = len(X_train[0])
 
-num_of_epochs = 200
+num_of_epochs = 300
 
 model_name = 'model_'
 
@@ -79,12 +80,12 @@ def create_simple_dens_structure():
 def create_dens_structure():
   model_name = 'model_Den_Den_Drp_1'
   model = Sequential(name=model_name)
-  model.add(Dense(400, activation='relu', 
+  model.add(Dense(100, activation='relu', 
                   input_shape=(num_of_features,)))
-  model.add(Dense(400, activation='relu'))
+  model.add(Dense(100, activation='relu'))
   model.add(Dropout(0.2))
   model.add(Dense(1, activation='sigmoid'))
-  opt = Adam(lr=1e-4, decay=1e-4/2)
+  opt = Adam(lr=1e-4/4, decay=1e-4/2)
   model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
   # mean_absolute_error
   # binary_crossentropy
@@ -139,7 +140,7 @@ def create_pconv_structure():
 model = create_dens_structure()
 
 #%%
-history = model.fit(X_train, Y_train, epochs=num_of_epochs, batch_size=400, validation_data=(X_test, Y_test), shuffle=True)
+history = model.fit(X_train, Y_train, epochs=num_of_epochs, batch_size=100, validation_data=(X_test, Y_test), shuffle=True)
 # model.evaluate(X_test, Y_test)
 print('saving model ...')
 model.save('bench_model_backup/' + model_name)
@@ -183,7 +184,7 @@ for i in range(len(sample_X)):
   if pred == 0 and pred == y: correctness_pred_0 += 1
   if pred == 1 and pred == y: correctness_pred_1 += 1
   row = [pred_raw, pred, y, diff]
-  if diff == diff:
+  if diff:
     print(str(i) + 'th' + '\t' + '\tpred_raw:' + str(pred_raw) + '\tpred:' + str(pred) + '\tY:' + str(y) + '\tdiff:' + str(diff))
 
 correctness = round(correctness / (pred_0 + pred_1), 4) * 100
