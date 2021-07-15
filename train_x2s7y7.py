@@ -2,21 +2,27 @@
 from matplotlib import use
 from tensorflow.python.keras.layers.core import Dropout
 from tensorflow.python.ops.gen_array_ops import Reshape
-import get_dataset
+import data_transform
 from datetime import date
 import numpy as np
 from pandas import DataFrame
 from sklearn.model_selection import train_test_split
 
-
-# C307: '65', '66', '67', '68', '69', '70', '71', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '121', '122', '123', '124', '125', '126', '127', '128', '129', '130', '131', '132', '133', '134', '174', '175', '176', '177', '178', '179', '180'
-device_keys_table = get_dataset.get_device_keys_table(use_archive=False, svce_loc_id_list=['65', '66', '67', '68', '69', '70', '71', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '121', '122', '123', '124', '125', '126', '127', '128', '129', '130', '131', '132', '133', '134', '174', '175', '176', '177', '178', '179', '180'])
-event_keys_table = get_dataset.get_event_keys_table(use_archive=True)
+device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_CU307())
+event_keys_table = data_transform.get_event_keys_table(use_archive=True)
 
 time_window_x = 2
 time_steps = 7
 time_window_y = 7
-X, Y = get_dataset.get_XY_between_date(date(2021, 1, 15), 
+X_train_df, Y_train_df = data_transform.get_XY_between_date(date(2021, 1, 15), 
+                                       date(2021, 4, 12), 
+                                       device_keys_table, 
+                                       event_keys_table,
+                                       time_window_x=time_window_x, 
+                                       time_steps=time_steps, 
+                                       time_window_y=time_window_y,
+                                       use_archive=True)
+X_test_df, Y_test_df = data_transform.get_XY_between_date(date(2021, 4, 12), 
                                        date(2021, 4, 19), 
                                        device_keys_table, 
                                        event_keys_table,
@@ -24,38 +30,22 @@ X, Y = get_dataset.get_XY_between_date(date(2021, 1, 15),
                                        time_steps=time_steps, 
                                        time_window_y=time_window_y,
                                        use_archive=True)
-print(X.shape)
-print(Y.shape)
+print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
+print('X_test_df.shape = ' + str(X_test_df.shape) + '\tY_test_df.shape = ' + str(Y_test_df.shape))
 
 #%%
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, shuffle=True)
 
-X_train, Y_train = get_dataset.data_argument(X_train, Y_train, multiply_y=3)
-print(X_train.shape)
-print(Y_train.shape)
+X_train_df, Y_train_df = data_transform.data_argument(X_train_df, Y_train_df, multiply_y=3)
+print('Argumented X_train_df.shape = ' + str(X_train_df.shape) + 'Argumented Y_train_df.shape = ' + str(Y_train_df.shape))
 
-X_train.pop('device_key')
-X_train.pop('date')
-X_train = np.asarray(X_train).astype('float32')
-
-Y_train = np.asarray(Y_train).astype('float32')
-Y_train = np.where(Y_train > 0, 1, 0)
-
-
-X_test.pop('device_key')
-X_test.pop('date')
-X_test = np.asarray(X_test).astype('float32')
-
-Y_test = np.asarray(Y_test).astype('float32')
-Y_test = np.where(Y_test > 0, 1, 0)
-
+X_train, Y_train = data_transform.convert_to_model_input(X_train_df, Y_train_df)
+X_test, Y_test = data_transform.convert_to_model_input(X_test_df, Y_test_df)
 
 from tensorflow.keras.models import Sequential, load_model, Model
 from tensorflow.keras.regularizers import l1
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, Reshape, Input, concatenate
 from tensorflow.keras.optimizers import Adam
 from model_bench import test_model, plot_result
-
 
 num_of_features = len(X_train[0])
 
@@ -152,12 +142,12 @@ val_accuracy_list = history.history['val_accuracy']
 
 plot_result([loss_list, val_loss_list, accuracy_list, val_accuracy_list], model_name)
 
-import csv
-with open('for_remote_training.csv', 'w', newline='') as csvfile:
-      writer = csv.writer(csvfile)
-      writer.writerow(['loss', 'accuracy', 'val_loss', 'val_accuracy'])
-      for i in range(len(loss_list)):
-            writer.writerow([loss_list[i], val_loss_list[i], accuracy_list[i], val_accuracy_list[i]])
+# import csv
+# with open('for_remote_training.csv', 'w', newline='') as csvfile:
+#       writer = csv.writer(csvfile)
+#       writer.writerow(['loss', 'accuracy', 'val_loss', 'val_accuracy'])
+#       for i in range(len(loss_list)):
+#             writer.writerow([loss_list[i], val_loss_list[i], accuracy_list[i], val_accuracy_list[i]])
 
 #%%
 
