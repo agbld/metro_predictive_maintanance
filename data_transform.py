@@ -365,7 +365,7 @@ def get_Y_of_the_date(date: date, device_keys_table, time_window=7, host=mssql_h
 
 #%%
 # local archive reduce data collection time and support variable [from_date], [to_date], [device_keys_table]
-def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event_keys_table, time_window_x=7, time_steps=4, time_window_y=7, host=mssql_host, user=mssql_user, passward=mssql_password, database=mssql_database, use_archive=True):
+def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event_keys_table, week_based=False, time_window_x=7, time_steps=4, time_window_y=7, host=mssql_host, user=mssql_user, passward=mssql_password, database=mssql_database, use_archive=True):
   print('\ncollecting X, Y ...')
   X = []
   Y = []
@@ -380,13 +380,14 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
         x = {}
         if not row[0] in device_keys_table: continue
         if from_date <= datetime.datetime.strptime(row[1], "%Y-%m-%d").date() < to_date:
-          for i in range(len(header) - 1):
-            if i < 2:
-              x[header[i]] = row[i]
-            else :
-              x[header[i]] = int(row[i])
-          # x.append(row[0])
-          # x.append(row[1])
+          if (datetime.datetime.strptime(row[1], "%Y-%m-%d").date() - from_date).days % 7 == 0 or not week_based:
+            for i in range(len(header) - 1):
+              if i < 2:
+                x[header[i]] = row[i]
+              else :
+                x[header[i]] = int(row[i])
+            # x.append(row[0])
+            # x.append(row[1])
         else : continue
         X.append(x)
         y = {}
@@ -425,7 +426,10 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
     Y.extend(Y_new)
     collected_dataset_size += 1
     print('[' + str(datetime.datetime.now()) + '] ' + str(collected_dataset_size) + ' blocks collected among ' + str(total_dataset_size))
-    cursor_date = cursor_date + datetime.timedelta(days=1)
+    if week_based:
+      cursor_date = cursor_date + datetime.timedelta(days=7)
+    else:
+      cursor_date = cursor_date + datetime.timedelta(days=1)
   print('X, Y loaded from server.')
   
   print('saving X, Y archive ...')
@@ -469,6 +473,7 @@ def data_argument(X:DataFrame, Y:DataFrame, multiply_y=1):
       X = X.append(argumented_X, ignore_index=True)
       Y = Y.append(argumented_Y, ignore_index=True)
     print('data argumented.')#, ' + str(counts_y1 * multiply_y) + ' records that y > 0 .')
+    print('Argumented X_train_df.shape = ' + str(X.shape) + 'Argumented Y_train_df.shape = ' + str(Y.shape))
     return X, Y
 
 # %%
@@ -491,4 +496,27 @@ def convert_to_model_input(X:DataFrame, Y:DataFrame, muliply_input_by=1, clamp_y
       Y_list.append(Y)
     return X_list, Y_list
 
-# %%
+#%%
+# rough safe range of predict_date : 3/10 - 4/19
+def get_practical_XY_train_test_of_date(predict_date:date, device_keys_table, event_keys_table, trace_back_to_week=4, time_window_x=2, time_steps=7, time_window_y=7):
+  train_from_date = predict_date - timedelta(weeks=trace_back_to_week)
+  test_to_date = predict_date + timedelta(days=1)
+  X_train_df, Y_train_df = get_XY_between_date(train_from_date, 
+                                        predict_date, 
+                                        device_keys_table, 
+                                        event_keys_table,
+                                        time_window_x=time_window_x, 
+                                        time_steps=time_steps, 
+                                        time_window_y=time_window_y,
+                                        use_archive=True)
+  X_test_df, Y_test_df = get_XY_between_date(predict_date, 
+                                        test_to_date, 
+                                        device_keys_table, 
+                                        event_keys_table,
+                                        time_window_x=time_window_x, 
+                                        time_steps=time_steps, 
+                                        time_window_y=time_window_y,
+                                        use_archive=True)
+  print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
+  print('X_test_df.shape = ' + str(X_test_df.shape) + '\tY_test_df.shape = ' + str(Y_test_df.shape))
+  return X_train_df, Y_train_df, X_test_df, Y_test_df
