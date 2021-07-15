@@ -88,7 +88,7 @@ def create_pconv_structure(num_of_features, time_steps):
 
 #%%
 bench_from_date = date(2021, 2, 1)
-bench_to_date = date(2021, 2, 16)
+bench_to_date = date(2021, 2, 10)
 cursor_date = bench_from_date
 result_list = []
 while cursor_date < bench_to_date:
