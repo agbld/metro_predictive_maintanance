@@ -140,7 +140,7 @@ model = create_dens_structure()
 
 #%%
 history = model.fit(X_train, Y_train, epochs=num_of_epochs, batch_size=400, validation_data=(X_test, Y_test), shuffle=True)
-# model.evaluate(X_test, Y_test)
+model.evaluate(X_test, Y_test)
 print('saving model ...')
 model.save('bench_model_backup/' + model_name)
 print('model saved')
