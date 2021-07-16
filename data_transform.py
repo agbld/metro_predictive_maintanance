@@ -520,3 +520,19 @@ def get_practical_XY_train_test_of_date(predict_date:date, device_keys_table, ev
   print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
   print('X_test_df.shape = ' + str(X_test_df.shape) + '\tY_test_df.shape = ' + str(Y_test_df.shape))
   return X_train_df, Y_train_df, X_test_df, Y_test_df
+
+#%%
+# rough safe range of predict_date : 3/10 - 4/19
+def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_keys_table, trace_back_to_week=4, time_window_x=2, time_steps=7, time_window_y=7):
+  train_from_date = predict_date - timedelta(weeks=trace_back_to_week)
+  train_to_date = predict_date - timedelta(days=time_window_y)
+  X_train_df, Y_train_df = get_XY_between_date(train_from_date, 
+                                        train_to_date, 
+                                        device_keys_table, 
+                                        event_keys_table,
+                                        time_window_x=time_window_x, 
+                                        time_steps=time_steps, 
+                                        time_window_y=time_window_y,
+                                        use_archive=True)
+  print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
+  return X_train_df, Y_train_df
