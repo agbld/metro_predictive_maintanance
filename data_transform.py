@@ -473,28 +473,44 @@ def data_argument(X:DataFrame, Y:DataFrame, multiply_y=1):
       X = X.append(argumented_X, ignore_index=True)
       Y = Y.append(argumented_Y, ignore_index=True)
     print('data argumented.')#, ' + str(counts_y1 * multiply_y) + ' records that y > 0 .')
-    print('Argumented X_train_df.shape = ' + str(X.shape) + 'Argumented Y_train_df.shape = ' + str(Y.shape))
+    print('Argumented X_train_df.shape = ' + str(X.shape) + '\tArgumented Y_train_df.shape = ' + str(Y.shape))
     return X, Y
 
 # %%
 def convert_to_model_input(X:DataFrame, Y:DataFrame, muliply_input_by=1, clamp_y=True):
-  X.pop('device_key')
-  X.pop('date')
-  X = np.asarray(X).astype('float32')
+  X_converted = X.copy()
+  Y_converted = Y.copy()
+  
+  X_converted.pop('device_key')
+  X_converted.pop('date')
+  X_converted = np.asarray(X_converted).astype('float32')
 
-  Y = np.asarray(Y).astype('float32')
+  Y_converted = np.asarray(Y_converted).astype('float32')
   if clamp_y:
-    Y = np.where(Y > 0, 1, 0)
+    Y_converted = np.where(Y_converted > 0, 1, 0)
     
   if muliply_input_by == 1:
-    return X, Y
+    return X_converted, Y_converted
+  else :
+    X_converted_list = []
+    Y_converted_list = []
+    for i in range(muliply_input_by):
+      X_converted_list.append(X)
+      Y_converted_list.append(Y)
+    return X_converted_list, Y_converted_list
+  
+def convert_to_model_input_X(X:DataFrame, muliply_input_by=1):
+  X.pop('device_key')
+  X.pop('date')
+  X_np = np.asarray(X).astype('float32')
+    
+  if muliply_input_by == 1:
+    return X_np
   else :
     X_list = []
-    Y_list = []
     for i in range(muliply_input_by):
-      X_list.append(X)
-      Y_list.append(Y)
-    return X_list, Y_list
+      X_list.append(X_np)
+    return X_list
 
 #%%
 # rough safe range of predict_date : 3/10 - 4/19
@@ -536,3 +552,5 @@ def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_k
                                         use_archive=True)
   print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
   return X_train_df, Y_train_df
+
+#%%

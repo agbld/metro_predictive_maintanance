@@ -6,6 +6,7 @@ bench_model_backup/*
 refer/mssql_info.csv
 for_remote_training.csv
 experiment_code/*
+result.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
