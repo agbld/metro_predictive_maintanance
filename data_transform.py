@@ -75,7 +75,7 @@ def get_device_keys_table(host=mssql_host, user=mssql_user, passward=mssql_passw
     print('collecting devices with specific stations list ...')
   
   # append table with event log
-  cmd_from_log = "SELECT svce_loc_id, dev_name FROM [ATIM_event_alarm] where dev_name not like '%VATIM%' group by svce_loc_id, dev_name"
+  cmd_from_log = "SELECT svce_loc_id, dev_name FROM [ATIM_event_alarm] where dev_name not like '%VATIM%' and dev_name not like '%(HUB)%' group by svce_loc_id, dev_name"
   cursor.execute(cmd_from_log)
   for row in cursor:
     svce_loc_id = str(row['svce_loc_id']).zfill(3)
@@ -380,7 +380,7 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
         x = {}
         if not row[0] in device_keys_table: continue
         if from_date <= datetime.datetime.strptime(row[1], "%Y-%m-%d").date() < to_date:
-          if (datetime.datetime.strptime(row[1], "%Y-%m-%d").date() - from_date).days % 7 == 0 or not week_based:
+          if (to_date - datetime.datetime.strptime(row[1], "%Y-%m-%d").date()).days % 7 == 0 or not week_based:
             for i in range(len(header) - 1):
               if i < 2:
                 x[header[i]] = row[i]
@@ -388,6 +388,7 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
                 x[header[i]] = int(row[i])
             # x.append(row[0])
             # x.append(row[1])
+          else : continue
         else : continue
         X.append(x)
         y = {}
@@ -524,7 +525,8 @@ def get_practical_XY_train_test_of_date(predict_date:date, device_keys_table, ev
                                         time_window_x=time_window_x, 
                                         time_steps=time_steps, 
                                         time_window_y=time_window_y,
-                                        use_archive=True)
+                                        use_archive=True,
+                                        week_based=True)
   X_test_df, Y_test_df = get_XY_between_date(predict_date, 
                                         test_to_date, 
                                         device_keys_table, 
@@ -532,7 +534,8 @@ def get_practical_XY_train_test_of_date(predict_date:date, device_keys_table, ev
                                         time_window_x=time_window_x, 
                                         time_steps=time_steps, 
                                         time_window_y=time_window_y,
-                                        use_archive=True)
+                                        use_archive=True,
+                                        week_based=True)
   print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
   print('X_test_df.shape = ' + str(X_test_df.shape) + '\tY_test_df.shape = ' + str(Y_test_df.shape))
   return X_train_df, Y_train_df, X_test_df, Y_test_df
@@ -541,7 +544,7 @@ def get_practical_XY_train_test_of_date(predict_date:date, device_keys_table, ev
 # rough safe range of predict_date : 3/10 - 4/19
 def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_keys_table, trace_back_to_week=4, time_window_x=2, time_steps=7, time_window_y=7):
   train_from_date = predict_date - timedelta(weeks=trace_back_to_week)
-  train_to_date = predict_date - timedelta(days=time_window_y)
+  train_to_date = predict_date - timedelta(days=6)
   X_train_df, Y_train_df = get_XY_between_date(train_from_date, 
                                         train_to_date, 
                                         device_keys_table, 
@@ -549,8 +552,9 @@ def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_k
                                         time_window_x=time_window_x, 
                                         time_steps=time_steps, 
                                         time_window_y=time_window_y,
-                                        use_archive=True)
-  print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape))
+                                        use_archive=True,
+                                        week_based=True)
+  print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape) + '\n')
   return X_train_df, Y_train_df
 
 #%%

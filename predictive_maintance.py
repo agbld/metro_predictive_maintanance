@@ -41,14 +41,14 @@ def train_model_for_date(date:date, device_type='', epochs=200, use_archive=True
   
   # show data statistics
   train_rows = Y_train_df['target'].count()
-  train_y1_perc = round(Y_train_df[Y_train_df['target'] == 1].count() / train_rows * 100, 2)
-  print('for original data, {0}% row has y == 1'.format(str(train_y1_perc)))
+  train_y1_perc = int(Y_train_df[Y_train_df['target'] == 1].count() / train_rows * 100)
+  print('for original data, {0}% row has y == 1\n'.format(str(train_y1_perc)))
   
   # data argumentation and convert to model input
   X_train_df, Y_train_df = data_transform.data_argument(X_train_df, Y_train_df, multiply_y=3)
   train_rows = Y_train_df['target'].count()
-  train_y1_perc = round(Y_train_df[Y_train_df['target'] == 1].count() / train_rows * 100, 2)
-  print('for argumented data, {0}% row has y == 1'.format(str(train_y1_perc)))
+  train_y1_perc = int(Y_train_df[Y_train_df['target'] == 1].count() / train_rows * 100)
+  print('for argumented data, {0}% row has y == 1\n'.format(str(train_y1_perc)))
   
   X_train, Y_train = data_transform.convert_to_model_input(X_train_df, Y_train_df)
   
@@ -81,7 +81,9 @@ def train_model_for_date(date:date, device_type='', epochs=200, use_archive=True
 def update_archive():
   device_keys_table = data_transform.get_device_keys_table(use_archive=False)
   event_keys_table = data_transform.get_event_keys_table(use_archive=False)
-  data_transform.get_XY_between_date()
+  date_oldest = date(2021, 2, 1)
+  date_latest = date(2021, 4, 19)
+  X, Y = data_transform.get_XY_between_date(date_oldest, date_latest, device_keys_table, event_keys_table, use_archive=False)
 
 #%%
 from tensorflow.keras.models import load_model
@@ -135,7 +137,7 @@ def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path
     database=mssql_database,
   )
   cursor = conn.cursor(as_dict=True)
-  cmd = 'INSERT INTO [prediction] (device_key, svce_loc_id, dev_name, from_date, to_date, prob_malfunc) VALUES '
+  cmd = 'INSERT INTO prediction (device_key, svce_loc_id, dev_name, from_date, to_date, prediction) VALUES '
   
   with open(result_path, write_mode, newline='') as csvfile:
     writer = csv.writer(csvfile)
@@ -153,7 +155,10 @@ def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path
                                                               result_tmp['from_date'],
                                                               result_tmp['to_date'],
                                                               result_tmp['predict'])
-  cursor.execute(cmd[:-1])
+  cmd = str(cmd[:-1])
+  # print(cmd)
+  cursor.execute(cmd)
+  conn.commit()
   cursor.close()
   conn.close()
   return DataFrame(result)
