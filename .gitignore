@@ -7,6 +7,7 @@ refer/mssql_info.csv
 for_remote_training.csv
 experiment_code/*
 result.csv
+ATIM_event_alarm
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
