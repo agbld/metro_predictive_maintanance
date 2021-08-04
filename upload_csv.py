@@ -10,6 +10,9 @@ import pyodbc
 from urllib.parse import quote_plus
 
 from data_transform import chunker
+import data_transform
+
+driver_name = '{ODBC Driver 17 for SQL Server}'
 
 def upload_csv_to_mssql(conn, from_folder: str, to_table: str, export_csv = False):
   from_folder = from_folder + '/'
@@ -51,7 +54,7 @@ if __name__ == '__main__':
     mssql_password=next(rows)[0]
     mssql_database=next(rows)[0]
   
-  conn =  "DRIVER={ODBC Driver 17 for SQL Server};" + "SERVER={0};DATABASE={1};UID={2};PWD={3}".format(mssql_host, mssql_database, mssql_user, mssql_password)
+  conn =  "DRIVER={0};".format(driver_name) + "SERVER={0};DATABASE={1};UID={2};PWD={3}".format(mssql_host, mssql_database, mssql_user, mssql_password)
   quoted = quote_plus(conn)
   new_con = 'mssql+pyodbc:///?odbc_connect={}'.format(quoted)
   conn = sqlalchemy.create_engine(new_con)
@@ -62,5 +65,5 @@ if __name__ == '__main__':
       if executemany:
           cursor.fast_executemany = True
   
-  upload_csv_to_mssql(conn, 'ATIM_event_alarm', 'ATIM_event_alarm_all')
+  upload_csv_to_mssql(conn, 'ATIM_event_alarm', data_transform.atim_event_alarm_table)
 # %%

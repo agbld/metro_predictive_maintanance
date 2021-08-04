@@ -10,6 +10,9 @@ from tensorflow.python.framework.ops import device
 
 event_key_table_path = 'refer/事件警報對照表_toAFC.csv'
 collected_data_folder = 'collected_data/'
+atim_event_alarm_table = 'ATIM_event_alarm_all'
+malfunc_report_table = 'ATIM工單_view'
+
 mssql_host=''
 mssql_user=''
 mssql_password=''
@@ -78,7 +81,7 @@ def get_device_keys_table(host=mssql_host, user=mssql_user, passward=mssql_passw
     print('collecting devices with specific stations list ...')
   
   # append table with event log
-  cmd_from_log = "SELECT svce_loc_id, dev_name FROM [ATIM_event_alarm] where dev_name not like '%VATIM%' and dev_name not like '%(HUB)%' group by svce_loc_id, dev_name"
+  cmd_from_log = "SELECT svce_loc_id, dev_name FROM [atim_event_alarm_table] where dev_name not like '%VATIM%' and dev_name not like '%(HUB)%' group by svce_loc_id, dev_name"
   cursor.execute(cmd_from_log)
   for row in cursor:
     svce_loc_id = str(row['svce_loc_id']).zfill(3)
@@ -151,7 +154,7 @@ def get_event_keys_table(csv_path=event_key_table_path, host=mssql_host, user=ms
     database=database,
   )
   cursor = conn.cursor(as_dict=True)
-  cmd = "select concat(tag_name, param_value) as event_key from ATIM_event_alarm group by concat(tag_name, param_value)"
+  cmd = "select concat(tag_name, param_value) as event_key from atim_event_alarm_table group by concat(tag_name, param_value)"
   cursor.execute(cmd)
   for event_key in cursor:
     key_table.append(event_key['event_key'])
@@ -197,7 +200,7 @@ def get_malfunction_keys_table(host=mssql_host, user=mssql_user, passward=mssql_
   cursor = conn.cursor(as_dict=True)
   
   # append table with event log
-  cmd = "SELECT [故障分類1] FROM [ATIM工單_view] group by [故障分類1] order by [故障分類1]"
+  cmd = "SELECT [故障分類1] FROM [malfunc_report_table] group by [故障分類1] order by [故障分類1]"
   cursor.execute(cmd)
   for row in cursor:
     key_table.append(row['故障分類1'])
@@ -266,7 +269,7 @@ def get_X_of_the_date(date: date, device_keys_table, event_keys_table, time_wind
   for i in range(1, time_steps + 1):
     cmd += """
     select RIGHT('000' + CONVERT(VARCHAR(3),[svce_loc_id]), 3) as svce_loc_id, dev_name, concat(tag_name, param_value) as event_key, \'{0}\' as week, count(concat(tag_name, param_value)) as counts
-    from [ATIM_event_alarm]
+    from [atim_event_alarm_table]
     where dev_name not like \'%VATIM%\' and create_datetime between \'{1}\' and \'{2}\'{3}
     group by concat(tag_name, param_value), svce_loc_id, dev_name
     """.format(i, str(date - timedelta(days=i * time_window)), str(date + timedelta(days=1) - timedelta(days=(i - 1) * time_window)), cmd_key_constrain)  
@@ -288,7 +291,7 @@ def get_X_of_the_date(date: date, device_keys_table, event_keys_table, time_wind
   for i in range(1, time_steps + 1):
     cmd += """
     select concat(svce_loc_id, dev_name) as device_key, \'{0}\' as week, count(dev_name) as counts
-    from ATIM工單_view
+    from malfunc_report_table
     where dev_name not like \'%VATIM%\' and 報修日期 between \'{1}\' and \'{2}\'
     group by concat(svce_loc_id, dev_name)
     """.format(i, str(date - timedelta(days=i * time_window)), str(date + timedelta(days=1) - timedelta(days=(i - 1) * time_window)))
@@ -350,7 +353,7 @@ def get_Y_of_the_date(date: date, device_keys_table, time_window=7, host=mssql_h
   # else:
   cmd = """
   select concat(svce_loc_id, dev_name) as device_key, count(dev_name) as counts
-  from ATIM工單_view
+  from malfunc_report_table
   where dev_name not like \'%VATIM%\' and 報修日期 between \'{0}\' and \'{1}\'{2}
   group by concat(svce_loc_id, dev_name)
   """.format(str(date + timedelta(days=1)), str(date + timedelta(days=time_window + 1)), cmd_key_constrain)
