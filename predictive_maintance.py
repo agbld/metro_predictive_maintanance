@@ -27,17 +27,17 @@ def train_model_for_date(date:date, device_type='', epochs=200, use_archive=True
   # get device_key_table and event_key_table
   device_keys_table = []
   if device_type == 'CU307':
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_CU307())
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive, svce_loc_id_list=data_transform.get_station_list_CU307())
   elif device_type == 'SongXin':
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_SongXin())
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive, svce_loc_id_list=data_transform.get_station_list_SongXin())
   elif device_type == 'Circular':
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_Circular())
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive, svce_loc_id_list=data_transform.get_station_list_Circular())
   else:
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True)
-  event_keys_table = data_transform.get_event_keys_table(use_archive=True)
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive)
+  event_keys_table = data_transform.get_event_keys_table(use_archive=use_archive)
   
   # collect all needed data from history
-  X_train_df, Y_train_df = data_transform.get_practical_XY_train_of_date(date, device_keys_table, event_keys_table, trace_back_to_week=6)
+  X_train_df, Y_train_df = data_transform.get_practical_XY_train_of_date(date, device_keys_table, event_keys_table, trace_back_to_week=6, use_archive=use_archive)
   
   # show data statistics
   train_rows = Y_train_df['target'].count()
@@ -102,22 +102,22 @@ with open('refer/mssql_info.csv', newline='') as csvfile:
   mssql_password=next(rows)[0]
   mssql_database=next(rows)[0]
 
-def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path:str, result_path='result.csv', device_type='', append=True):
+def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path:str, result_path='result.csv', device_type='', append=True, use_archive=True):
   
   # get device_key_table and event_key_table
   device_keys_table = []
   if device_type == 'CU307':
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_CU307())
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive, svce_loc_id_list=data_transform.get_station_list_CU307())
   elif device_type == 'SongXin':
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_SongXin())
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive, svce_loc_id_list=data_transform.get_station_list_SongXin())
   elif device_type == 'Circular':
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True, svce_loc_id_list=data_transform.get_station_list_Circular())
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive, svce_loc_id_list=data_transform.get_station_list_Circular())
   else:
-    device_keys_table = data_transform.get_device_keys_table(use_archive=True)
-  event_keys_table = data_transform.get_event_keys_table(use_archive=True)
+    device_keys_table = data_transform.get_device_keys_table(use_archive=use_archive)
+  event_keys_table = data_transform.get_event_keys_table(use_archive=use_archive)
   
   # get needed featurs and transform
-  X_df, Y_df = data_transform.get_XY_between_date(make_prediction_date, make_prediction_date + timedelta(days=1), device_keys_table, event_keys_table)
+  X_df, Y_df = data_transform.get_XY_between_date(make_prediction_date, make_prediction_date + timedelta(days=1), device_keys_table, event_keys_table, use_archive=use_archive)
   # X_df = DataFrame(data_transform.get_X_of_the_date(make_prediction_date, device_keys_table, event_keys_table))
   X_input, Y_input = data_transform.convert_to_model_input(X_df, Y_df)
   

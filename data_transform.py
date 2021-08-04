@@ -7,16 +7,17 @@ from pandas.core.frame import DataFrame
 import pymssql
 from scipy.sparse import data
 from tensorflow.python.framework.ops import device
+from tqdm import tqdm
 
 event_key_table_path = 'refer/事件警報對照表_toAFC.csv'
 collected_data_folder = 'collected_data/'
-atim_event_alarm_table = 'ATIM_event_alarm_all'
-malfunc_report_table = 'ATIM工單_view'
 
 mssql_host=''
 mssql_user=''
 mssql_password=''
 mssql_database=''
+atim_event_alarm_table = 'ATIM_event_alarm'
+malfunc_report_table = 'ATIM工單_view'
 
 with open('refer/mssql_info.csv', newline='') as csvfile:
   rows = csv.reader(csvfile)
@@ -305,7 +306,7 @@ def get_X_of_the_date(date: date, device_keys_table, event_keys_table, time_wind
     else: error_counts += 1
   
   
-  if error_counts >= 0 : print(str(error_counts) + ' errors among ' + str(query_counts) + ' query rows, ' + str(value_counts) + ' values.')
+  # if error_counts >= 0 : print(str(error_counts) + ' errors among ' + str(query_counts) + ' query rows, ' + str(value_counts) + ' values.')
   cursor.close()
   conn.close()
   return X.values()
@@ -408,35 +409,38 @@ def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event
   cursor_date = from_date
   total_dataset_size = (to_date - from_date).days
   collected_dataset_size = 0
-  while cursor_date < to_date:
-    try:
-      X_new = get_X_of_the_date(cursor_date, 
-                                device_keys_table, 
-                                event_keys_table, 
-                                time_window=time_window_x, 
-                                time_steps=time_steps,
-                                host=host, 
-                                user=user, 
-                                passward=passward,
-                                database=database)
-      Y_new = get_Y_of_the_date(cursor_date, 
-                                device_keys_table, 
-                                time_window=time_window_y,
-                                host=host, 
-                                user=user, 
-                                passward=passward,
-                                database=database)
-    except:
-      print('\nDB-Lib error message 20047, DBPROCESS is dead or not enabled, resending query ...\n')
-      continue
-    X.extend(X_new)
-    Y.extend(Y_new)
-    collected_dataset_size += 1
-    print('[' + str(datetime.datetime.now()) + '] ' + str(collected_dataset_size) + ' blocks collected among ' + str(total_dataset_size))
-    if week_based:
-      cursor_date = cursor_date + datetime.timedelta(days=7)
-    else:
-      cursor_date = cursor_date + datetime.timedelta(days=1)
+  with tqdm(total=total_dataset_size) as pbar:
+    while cursor_date < to_date:
+      try:
+        X_new = get_X_of_the_date(cursor_date, 
+                                  device_keys_table, 
+                                  event_keys_table, 
+                                  time_window=time_window_x, 
+                                  time_steps=time_steps,
+                                  host=host, 
+                                  user=user, 
+                                  passward=passward,
+                                  database=database)
+        Y_new = get_Y_of_the_date(cursor_date, 
+                                  device_keys_table, 
+                                  time_window=time_window_y,
+                                  host=host, 
+                                  user=user, 
+                                  passward=passward,
+                                  database=database)
+      except:
+        print('\nDB-Lib error message 20047, DBPROCESS is dead or not enabled, resending query ...\n')
+        continue
+      X.extend(X_new)
+      Y.extend(Y_new)
+      collected_dataset_size += 1
+      # print('[' + str(datetime.datetime.now()) + '] ' + str(collected_dataset_size) + ' blocks collected among ' + str(total_dataset_size))
+      if week_based:
+        cursor_date = cursor_date + datetime.timedelta(days=7)
+        pbar.update(7)
+      else:
+        cursor_date = cursor_date + datetime.timedelta(days=1)
+        pbar.update(1)
   print('X, Y loaded from server.')
   
   print('saving X, Y archive ...')
@@ -548,7 +552,7 @@ def get_practical_XY_train_test_of_date(predict_date:date, device_keys_table, ev
 
 #%%
 # rough safe range of predict_date : 3/10 - 4/19
-def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_keys_table, trace_back_to_week=4, time_window_x=2, time_steps=7, time_window_y=7):
+def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_keys_table, trace_back_to_week=4, time_window_x=2, time_steps=7, time_window_y=7, use_archive=True):
   train_from_date = predict_date - timedelta(weeks=trace_back_to_week)
   train_to_date = predict_date - timedelta(days=6)
   X_train_df, Y_train_df = get_XY_between_date(train_from_date, 
@@ -558,7 +562,7 @@ def get_practical_XY_train_of_date(predict_date:date, device_keys_table, event_k
                                         time_window_x=time_window_x, 
                                         time_steps=time_steps, 
                                         time_window_y=time_window_y,
-                                        use_archive=True,
+                                        use_archive=use_archive,
                                         week_based=True)
   print('X_train_df.shape = ' + str(X_train_df.shape) + '\tY_train_df.shape = ' + str(Y_train_df.shape) + '\n')
   return X_train_df, Y_train_df
