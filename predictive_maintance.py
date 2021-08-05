@@ -1,5 +1,6 @@
 #%%
 from numpy import mod
+import sqlalchemy
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, Reshape, Input, concatenate
 from tensorflow.keras.optimizers import Adam
@@ -130,13 +131,13 @@ def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path
   write_mode = 'a'
   if not append: write_mode = 'w'
   
-  conn = pymssql.connect(
-    host=mssql_host,
-    user=mssql_user,
-    password=mssql_password,
-    database=mssql_database,
-  )
-  cursor = conn.cursor(as_dict=True)
+  # conn = pymssql.connect(
+  #   host=mssql_host,
+  #   user=mssql_user,
+  #   password=mssql_password,
+  #   database=mssql_database,
+  # )
+  # cursor = conn.cursor(as_dict=True)
   cmd = 'INSERT INTO prediction (device_key, svce_loc_id, dev_name, from_date, to_date, prediction) VALUES '
   
   with open(result_path, write_mode, newline='') as csvfile:
@@ -157,10 +158,20 @@ def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path
                                                               result_tmp['predict'])
   cmd = str(cmd[:-1])
   # print(cmd)
-  cursor.execute(cmd)
-  conn.commit()
-  cursor.close()
-  conn.close()
+  # cursor.execute(cmd)
+  # conn.commit()
+  # cursor.close()
+  # conn.close()
+  result_df = DataFrame(result)
+  conn = sqlalchemy.engine.URL.create(
+      "mssql+pymssql",
+      username=mssql_user,
+      password=mssql_password,
+      host=mssql_host,
+      database=mssql_database,
+  )
+  conn = sqlalchemy.create_engine(conn, echo=False)
+  result_df.to_sql(con=conn, name="prediction", if_exists='append', index=False, method='multi')
   return DataFrame(result)
 
 #%%
