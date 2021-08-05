@@ -372,7 +372,7 @@ def get_Y_of_the_date(date: date, device_keys_table, time_window=7, host=mssql_h
 
 #%%
 # local archive reduce data collection time and support variable [from_date], [to_date], [device_keys_table]
-def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event_keys_table, week_based=False, time_window_x=7, time_steps=4, time_window_y=7, host=mssql_host, user=mssql_user, passward=mssql_password, database=mssql_database, use_archive=True):
+def get_XY_between_date(from_date: date, to_date: date, device_keys_table, event_keys_table, week_based=False, time_window_x=2, time_steps=7, time_window_y=7, host=mssql_host, user=mssql_user, passward=mssql_password, database=mssql_database, use_archive=True):
   print('\ncollecting X, Y ...')
   X = []
   Y = []

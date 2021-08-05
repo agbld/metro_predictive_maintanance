@@ -21,7 +21,7 @@ import data_transform
 from datetime import date, datetime, timedelta
 from pandas import DataFrame
 from matplotlib import pyplot as plt
-def train_model_for_date(date:date, device_type='', epochs=200, use_archive=True, plot_result=True):
+def train_model_for_date(date:date, device_type='', epochs=200, use_archive=False, plot_result=True):
   print('training model for ' + str(date) + ' prediction ...')
   
   # get device_key_table and event_key_table
@@ -102,7 +102,7 @@ with open('refer/mssql_info.csv', newline='') as csvfile:
   mssql_password=next(rows)[0]
   mssql_database=next(rows)[0]
 
-def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path:str, result_path='result.csv', device_type='', append=True, use_archive=True):
+def make_prediction_of_the_date_with_model(make_prediction_date:date, model_path:str, result_path='result.csv', device_type='', append=True, use_archive=False):
   
   # get device_key_table and event_key_table
   device_keys_table = []
